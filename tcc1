@@ -1,0 +1,48 @@
+DROP TABLE IF EXISTS FeePayments;
+
+CREATE TABLE FeePayments (
+    payment_id INT PRIMARY KEY,
+    student_name VARCHAR(100) NOT NULL,
+    amount DECIMAL(10,2),
+    payment_date DATE NOT NULL,
+    CHECK (amount > 0)
+);
+-- Part A: Successful transaction
+START TRANSACTION;
+INSERT INTO FeePayments VALUES (1, 'Ashish', 5000.00, '2024-06-01');
+INSERT INTO FeePayments VALUES (2, 'Smaran', 4500.00, '2024-06-02');
+INSERT INTO FeePayments VALUES (3, 'Vaibhav', 5500.00, '2024-06-03');
+COMMIT;
+
+SELECT * FROM FeePayments;
+
+-- Part B: Failed transaction (duplicate ID and invalid amount)
+START TRANSACTION;
+INSERT INTO FeePayments VALUES (4, 'Kiran', 4700.00, '2024-06-04');
+-- This line causes CHECK constraint violation; comment it out or let it fail
+-- INSERT INTO FeePayments VALUES (1, 'Ashish', -3000.00, '2024-06-05');
+ROLLBACK;
+
+SELECT * FROM FeePayments;
+
+-- Part C: Partial failure (NULL in NOT NULL field)
+START TRANSACTION;
+INSERT INTO FeePayments VALUES (5, 'Manoj', 5200.00, '2024-06-06');
+-- This will fail due to NULL in NOT NULL field
+-- INSERT INTO FeePayments VALUES (6, NULL, 5000.00, '2024-06-07');
+ROLLBACK;
+
+SELECT * FROM FeePayments;
+
+-- Part D: ACID properties
+START TRANSACTION;
+INSERT INTO FeePayments VALUES (6, 'Deepak', 4900.00, '2024-06-08');
+COMMIT;
+
+START TRANSACTION;
+INSERT INTO FeePayments VALUES (7, 'Meena', 5100.00, '2024-06-09');
+-- Duplicate ID (2) will cause failure
+-- INSERT INTO FeePayments VALUES (2, 'Duplicate', 4500.00, '2024-06-10');
+ROLLBACK;
+
+SELECT * FROM FeePayments;
