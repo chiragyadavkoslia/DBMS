@@ -1,0 +1,76 @@
+DROP TABLE IF EXISTS StudentEnrollments;
+
+CREATE TABLE StudentEnrollments (
+    enrollment_id INT PRIMARY KEY,
+    student_name VARCHAR(100) NOT NULL,
+    course_id VARCHAR(10) NOT NULL,
+    enrollment_date DATE NOT NULL,
+    UNIQUE KEY unique_student_course (student_name, course_id)
+);
+
+INSERT INTO StudentEnrollments VALUES 
+(1, 'Ashish', 'CSE101', '2024-07-01'),
+(2, 'Smaran', 'CSE102', '2024-07-01'),
+(3, 'Vaibhav', 'CSE101', '2024-07-01');
+
+-- Part A: Prevent duplicate enrollment (uses new student/course combination)
+START TRANSACTION;
+INSERT INTO StudentEnrollments VALUES 
+(4, 'Ashish', 'CSE103', '2024-07-02'); -- New course to avoid duplicate
+COMMIT;
+
+-- View current state
+SELECT * FROM StudentEnrollments;
+
+-- Part B: SELECT FOR UPDATE lock simulation (User A session)
+START TRANSACTION;
+SELECT * FROM StudentEnrollments
+WHERE student_name = 'Ashish' AND course_id = 'CSE101'
+FOR UPDATE;
+-- Simulate holding the lock before committing
+-- Leave transaction open here in session A
+-- COMMIT;
+
+-- Part B: UPDATE from User B session (run in second client during lock)
+-- START TRANSACTION;
+-- UPDATE StudentEnrollments
+-- SET enrollment_date = '2024-07-05'
+-- WHERE student_name = 'Ashish' AND course_id = 'CSE101';
+-- COMMIT;
+
+-- Finish User A's transaction so others can continue
+COMMIT;
+
+-- Reset row to consistent state for Part C
+UPDATE StudentEnrollments
+SET enrollment_date = '2024-07-01'
+WHERE student_name = 'Ashish' AND course_id = 'CSE101';
+
+-- Part C: Demonstrate consistent updates with locking
+
+-- User A session
+START TRANSACTION;
+SELECT * FROM StudentEnrollments
+WHERE student_name = 'Ashish' AND course_id = 'CSE101'
+FOR UPDATE;
+UPDATE StudentEnrollments
+SET enrollment_date = '2024-07-10'
+WHERE student_name = 'Ashish' AND course_id = 'CSE101';
+-- Hold transaction open briefly to simulate concurrency
+-- COMMIT;
+
+-- User B session (run this while User A is still holding the lock)
+-- START TRANSACTION;
+-- SELECT * FROM StudentEnrollments
+-- WHERE student_name = 'Ashish' AND course_id = 'CSE101'
+-- FOR UPDATE;
+-- UPDATE StudentEnrollments
+-- SET enrollment_date = '2024-07-15'
+-- WHERE student_name = 'Ashish' AND course_id = 'CSE101';
+-- COMMIT;
+
+-- Complete User A’s transaction
+COMMIT;
+
+-- Final view of Ashish's enrollment
+SELECT * FROM StudentEnrollments WHERE student_name = 'Ashish';
